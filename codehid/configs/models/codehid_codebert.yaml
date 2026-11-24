@@ -1,0 +1,43 @@
+model:
+  arch: codehid_codebert_dsi
+
+  # =========================
+  # Encoder (CodeBERT)
+  # =========================
+  encoder_name: ${oc.env:CODEHID_ENCODER_NAME,microsoft/graphcodebert-base}
+  freeze_encoder: true
+  encoder_max_length: 256
+
+  # =========================
+  # Decoder (Qwen2.5-Coder-7B)
+  # =========================
+  use_llm: true
+  decoder_name: ${oc.env:CODEHID_DECODER_NAME,Qwen/Qwen2.5-Coder-7B}
+  hidden_size: 3584
+  decoder_max_length: 64
+
+  # =========================
+  # 🔴 DSI / Memory-critical settings
+  # =========================
+  freeze_decoder: true          # Required for single 3090 setups
+  enable_gradient_checkpointing: true
+  decoder_dtype: bfloat16       # Prefer bf16 on A800 for better stability
+  # LoRA: keep decoder backbone frozen and train low-rank adapters only.
+  use_lora: true
+  lora_r: 8
+  lora_alpha: 16
+  lora_dropout: 0.05
+  lora_target_modules: ["q_proj", "v_proj"]
+  unfreeze_decoder_embed_and_lm_head: true
+  # Prefix branch switch (maps prefix vectors to decoder hidden via alignment_proj).
+  enable_alignment_proj: true
+  # Patch branch local linear (patch_linear): independent from enable_alignment_proj.
+  enable_patch_linear: true
+  use_patch_tokens: false
+  patch_token_count: 4
+  patch_pooling: mean
+
+  # =========================
+  # Framework flags
+  # =========================
+  load_finetuned: false

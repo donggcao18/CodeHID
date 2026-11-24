@@ -1,0 +1,41 @@
+# ================================
+# Run config
+# ================================
+run_cfg:
+  evaluate: false
+  max_epoch: 1
+  batch_size_train: 2
+  batch_size_eval: 2
+  num_workers: 2
+  seed: 42
+
+
+# ================================
+# Dataset config
+# BaseTask.build_datasets reads cfg.datasets_cfg.
+# ================================
+datasets_cfg:
+  cosqa_dsi:
+    data_type: text
+    build_info:
+      ann_path: ${oc.env:DATASET_FINAL_DIR,stage1_docid_build/data/cosqa_docid_build/final}/train.jsonl
+      valid_ann_path: ${oc.env:DATASET_FINAL_DIR,stage1_docid_build/data/cosqa_docid_build/final}/valid.jsonl
+
+
+# ================================
+# Task config
+# ================================
+task:
+  name: dsi_pretrain
+
+
+# ================================
+# Model config (placeholder; can be refined later)
+# ================================
+model:
+  arch: codehid_codebert_dsi     # Must match the model key registered in registry
+  encoder_name: microsoft/codebert-base
+  use_llm: true
+  decoder_name: ${oc.env:CODEHID_DECODER_NAME,Qwen/Qwen2.5-Coder-7B}
+  hidden_size: 3584
+  freeze_encoder: true

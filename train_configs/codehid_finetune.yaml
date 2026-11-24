@@ -1,0 +1,130 @@
+# =========================================================q
+# Model
+# =========================================================
+model:
+  # Must match @registry.register_model("codehid_codebert_dsi")
+  arch: codehid_codebert_dsi
+  model_type: codehid_codebert_dsi
+
+  # These parameters are defined in models/codehid_codebert.yaml.
+  # Only training-time controls are overridden here.
+  prefix_length: 16
+  freeze_decoder: true
+  decoder_dtype: bfloat16
+  use_llm: true
+  enable_gradient_checkpointing: false
+  use_lora: true
+  lora_r: 8
+  lora_alpha: 16
+  lora_dropout: 0.05
+  lora_target_modules: ["q_proj", "v_proj"]
+  # Controls the prefix branch only; false does not disable patch_linear branch.
+  enable_alignment_proj: true
+  enable_patch_linear: true
+  use_patch_tokens: true
+  patch_token_count: 4
+  patch_pooling: mean
+  gradual_unfreeze: false
+  unfreeze_prefix_epoch: 0
+  unfreeze_alignment_epoch: 1
+  unfreeze_embed_epoch: 2
+  unfreeze_lm_head_epoch: 3
+  unfreeze_decoder_embed_and_lm_head: true
+  label_smoothing: 0.0
+  dual_phase_guidance_train_enable: true
+  dual_phase_guidance_train_lambda_lex: 0.06
+  dual_phase_guidance_train_lambda_rank_distill: 0.03
+  dual_phase_guidance_train_lex_temperature: 0.07
+  dual_phase_guidance_train_rank_temperature: 1.0
+
+
+# =========================================================
+# Datasets (text-only, CoSQA)
+# =========================================================
+datasets:
+  cosqa_dsi:
+    build_info:
+      ann_path: "${oc.env:DATASET_FINAL_DIR,stage1_docid_build/data/cosqa_docid_build/final}/train.jsonl"
+      valid_ann_path: "${oc.env:DATASET_FINAL_DIR,stage1_docid_build/data/cosqa_docid_build/final}/valid.jsonl"
+
+    text_processor:
+      train:
+        name: "codebert_text"
+        pretrained_model_name: "${oc.env:CODEBERT_ENCODER_NAME,microsoft/graphcodebert-base}"
+        max_length: 512
+
+
+# =========================================================
+# Run / Task
+# =========================================================
+run:
+  # Mapped to DSIPretrainTask
+  task: dsi_pretrain
+
+  # =========================
+  # Optimization
+  # =========================
+  lr_sched: "linear_warmup_cosine_lr"
+  init_lr: 5e-5
+  min_lr: 1e-6
+  warmup_lr: 1e-7
+  warmup_steps: 800
+
+  weight_decay: 0.01
+  max_epoch: 12
+  iters_per_epoch: 2428
+
+  # Dual-phase guidance training
+  dual_phase_guidance_train_enable: true
+  dual_phase_guidance_train_lambda_lex: 0.06
+  dual_phase_guidance_train_lambda_rank_distill: 0.03
+  dual_phase_guidance_train_hard_neg_k: 4
+  dual_phase_guidance_train_mine_topk: 1000
+  dual_phase_guidance_train_mine_every_n_epoch: 1
+  dual_phase_guidance_train_mine_batch_size: 64
+  dual_phase_guidance_train_start_epoch: 5
+
+  # =========================
+  # Batch / Loader
+  # =========================
+  batch_size_train: 4
+  batch_size_eval: 2
+  gradient_accumulation_steps: 2
+  num_workers: 12
+
+  # =========================
+  # Runtime
+  # =========================
+  seed: 42
+  output_dir: "output/codehid_codebert_dsi"
+
+  amp: true
+  amp_dtype: bf16
+  resume_ckpt_path: null
+
+  evaluate: false
+  train_splits: ["train"]
+
+  device: "cuda"
+
+  # =========================
+  # Single-GPU critical settings
+  # =========================
+  world_size: 1
+  distributed: false
+  dist_url: null
+  parallel_strategy: ddp
+
+  # =========================
+  # Checkpoint settings (required to persist checkpoints)
+  # =========================
+  checkpoint:
+    save_freq: 1        # Save every epoch
+    save_last: true     # Additionally keep the final epoch
+    save_best: true     # Save best by best_metric/best_mode
+    best_metric: "loss"
+    best_mode: "min"
+    max_to_keep: 0      # <=0 means keep full checkpoint history
+    save_trainable_only: false  # Save full model parameters (including generator)
+    save_optimizer: false       # Set true for resume training support
+    save_scaler: false          # Set true for AMP resume support

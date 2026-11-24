@@ -1,0 +1,6 @@
+datasets:
+  cosqa_dsi:
+    data_type: text
+    build_info:
+      ann_path: "${oc.env:DATASET_FINAL_DIR,stage1_docid_build/data/cosqa_docid_build/final}/train.jsonl"
+      valid_ann_path: "${oc.env:DATASET_FINAL_DIR,stage1_docid_build/data/cosqa_docid_build/final}/valid.jsonl"
