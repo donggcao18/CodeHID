@@ -8,6 +8,7 @@ from typing import Dict, List, Optional, Tuple
 
 import numpy as np
 import torch
+from omegaconf import OmegaConf
 from tqdm import tqdm
 
 from codehid.models.codehid_codebert import CodeHIDCodeBERTDSI
@@ -300,7 +301,8 @@ def _extract_model_cfg_from_ckpt(ckpt_obj):
     model_cfg = cfg.get("model")
     if not isinstance(model_cfg, dict):
         return {}
-    return model_cfg
+    # Checkpoints may store unresolved OmegaConf expressions such as model names.
+    return OmegaConf.to_container(OmegaConf.create(cfg).model, resolve=True)
 
 
 def build_model(model_cfg=None):
